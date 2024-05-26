@@ -10,7 +10,7 @@ from modeling.diffusion import DiffusionModel
 def train_step(model: DiffusionModel, inputs: torch.Tensor, optimizer: Optimizer, device: str):
     optimizer.zero_grad()
     inputs = inputs.to(device)
-    loss = model(inputs)
+    loss = model(inputs).to(device)
     loss.backward()
     optimizer.step()
     return loss
@@ -32,3 +32,4 @@ def generate_samples(model: DiffusionModel, device: str, path: str):
         samples = model.sample(8, (3, 32, 32), device=device)
         grid = make_grid(samples, nrow=4)
         save_image(grid, path)
+ 

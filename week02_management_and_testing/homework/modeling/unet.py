@@ -101,18 +101,42 @@ class UnetModel(nn.Module):
     def forward(self, x: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         x = self.init_conv(x)
 
+
+        #print(x.shape)
+
         down1 = self.down1(x)
+
+        #print(down1.shape)
+
         down2 = self.down2(down1)
+
+        #print(down2.shape)
+
         down3 = self.down3(down2)
 
+        #print(down3.shape)
+
         thro = self.to_vec(down3)
+
+        print(thro.shape)
+
         temb = self.timestep_embedding(t)
 
-        thro = self.up0(thro + temb)
+        thro = self.up0(thro + temb.unsqueeze(-1).unsqueeze(-1))
 
-        up1 = self.up1(thro, down3) + temb
-        up2 = self.up2(up1, down2)
+        print(thro.shape, down3.shape, temb.shape)
+
+        up1 = self.up1(thro, down3) + temb.unsqueeze(-1).unsqueeze(-1)
+
+        print(up1.shape, down2.shape)
+
+        up2 = self.up2(up1, down2) 
+
+        print(up2.shape, down1.shape)
+
         up3 = self.up3(up2, down1)
+
+        print(up3.shape, x.shape)
 
         out = self.out(torch.cat((up3, x), 1))
 
