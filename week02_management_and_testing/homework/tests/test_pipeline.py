@@ -3,9 +3,11 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision.transforms import Compose, ToTensor, Normalize
 from torchvision.datasets import CIFAR10
+import tqdm
+import wandb
 
 from modeling.diffusion import DiffusionModel
-from modeling.training import train_step
+from modeling.training import train_step, train_epoch, generate_samples
 from modeling.unet import UnetModel
 
 
@@ -41,6 +43,31 @@ def test_train_on_one_batch(device, train_dataset):
     assert loss < 0.5
 
 
-def test_training():
-    # note: implement and test a complete training procedure (including sampling)
-    pass
+@pytest.mark.parametrize(["device"],[["cuda"]])
+def test_training(device, train_dataset, epochs = 50):
+    config = {"lr":5e-4, "batch_size":4, "epochs":epochs, "dataset":"CIFAR-100"}
+    
+    ddpm = DiffusionModel(
+        eps_model=UnetModel(3, 3, hidden_size=32), 
+        betas=(1e-4, 0.02),
+        num_timesteps=1000,
+    )
+
+    ddpm.to(device)
+
+    optim = torch.optim.Adam(ddpm.parameters(), lr=config['lr'])
+
+    dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
+
+    wandb.init(
+        project="efficient_learning_hw2",
+        config = config
+    )
+    
+    for i in range(epochs):
+        loss = train_epoch(ddpm, dataloader, optimizer=optim, device = device)
+        wandb.log({"loss":loss})
+
+    generate_samples(ddpm, device, '')
+
+    wandb.finish()
